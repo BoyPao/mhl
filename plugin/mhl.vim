@@ -115,6 +115,7 @@ function! <SID>MHLResetHL(id)
 			endif
 			if item[key] == a:id
 				call matchdelete(a:id)
+				return
 			endif
 		endfor
 	endfor
