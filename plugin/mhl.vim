@@ -79,12 +79,33 @@ function! <SID>MHLTriggerMatch()
 	let wrd = escape('\<' . wrd. '\>', '\')
 	let keys = keys(g:mhlBusyIdDict)
 	for key in keys
-		if wrd == g:mhlBusyIdDict[key]
+		if <SID>MHLStrcmp(wrd, g:mhlBusyIdDict[key]) == 0
 			call <SID>MHLClearMatch(key)
 			return
 		endif
 	endfor
 	call <SID>MHLAddMatch(wrd)
+endfunction
+
+function! <SID>MHLStrcmp(str1, str2)
+	let lst1 = str2list(a:str1, 1)
+	let lst2 = str2list(a:str2, 1)
+	let len1 = len(a:str1)
+	let len2 = len(a:str2)
+	if len1 > len2
+		return 1
+	elseif len1 < len2
+		return -1
+	endif
+	let idx = 0
+	while idx < len1
+		let diff = char2nr(lst1[idx]) - char2nr(lst2[idx])
+		if diff
+			return diff
+		endif
+		let idx = idx + 1
+	endwhile
+	return 0
 endfunction
 
 function! <SID>MHLClearAllMatch()
