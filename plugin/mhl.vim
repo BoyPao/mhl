@@ -38,6 +38,13 @@
 "     MhlTriggerMatch.
 "
 
+"==============================================================================
+" Configurations:
+"==============================================================================
+" > g:mhlIgnoreCase
+"     If the value of g:mhlIgnoreCase is 0, then match will not ignore case.
+"     Otherwise, match will ignore case. The default value is 0.
+
 if !exists(':MhlTriggerMatch')
 	command! MhlTriggerMatch call <SID>MHLTriggerMatch()
 endif
@@ -46,7 +53,11 @@ if !exists(':MhlClearAllMatch')
 	command! MhlClearAllMatch call <SID>MHLClearAllMatch()
 endif
 
-" The first id of MatchColor[id] should equals to g:mhlReserveId + 1
+if !exists('g:mhlIgnoreCase')
+	let g:mhlIgnoreCase = 0
+endif
+
+" The first id of MatchColor[id] should equals to s:mhlReserveId + 1
 hi MatchColor4 guifg=#0c0d0d guibg=#f04848 guisp=#f04848 gui=NONE ctermfg=232 ctermbg=203 cterm=NONE
 hi MatchColor5 guifg=#0c0d0d guibg=#e6ad12 guisp=#e6ad12 gui=NONE ctermfg=232 ctermbg=178 cterm=NONE
 hi MatchColor6 guifg=#0c0d0d guibg=#4ce076 guisp=#4ce076 gui=NONE ctermfg=232 ctermbg=78 cterm=NONE
@@ -54,32 +65,26 @@ hi MatchColor7 guifg=#0c0d0d guibg=#3774e6 guisp=#3774e6 gui=NONE ctermfg=232 ct
 hi MatchColor8 guifg=#0c0d0d guibg=#ca78de guisp=#ca78de gui=NONE ctermfg=232 ctermbg=176 cterm=NONE
 hi MatchColor9 guifg=#0c0d0d guibg=#4ccbeb guisp=#4ccbeb gui=NONE ctermfg=232 ctermbg=81 cterm=NONE
 
-if !exists('g:mhlMatchPriority')
-	" set 0 to prevent overrule for hlsearch
-	let g:mhlMatchPriority = 0
-endif
+" set 0 to prevent overrule for hlsearch
+let s:mhlMatchPriority = 0
 
-if !exists('g:mhlReserveId')
-	" Check match reserve id with cmd:help matchadd
-	let g:mhlReserveId = 3
-endif
+" Check match reserve id with cmd:help matchadd
+let s:mhlReserveId = 3
 
-if !exists('g:mhlMaxId')
-	" Check match max id with cmd:help matchadd
-	let g:mhlMaxId = 10
-endif
+" Check match max id with cmd:help matchadd
+let s:mhlMaxId = 10
 
-let g:mhlBusyIdDict = {}
-let g:mhlIdHistQueue = []
+let s:mhlBusyIdDict = {}
+let s:mhlIdHistQueue = []
 
 autocmd WinNew /* call <SID>MHLApplyMatch()
 
 function! <SID>MHLTriggerMatch()
 	let wrd = expand('<cword>')
 	let wrd = escape('\<' . wrd. '\>', '\')
-	let keys = keys(g:mhlBusyIdDict)
+	let keys = keys(s:mhlBusyIdDict)
 	for key in keys
-		if <SID>MHLStrcmp(wrd, g:mhlBusyIdDict[key]) == 0
+		if <SID>MHLIsStrSame(wrd, s:mhlBusyIdDict[key])
 			call <SID>MHLClearMatch(key)
 			return
 		endif
@@ -87,42 +92,37 @@ function! <SID>MHLTriggerMatch()
 	call <SID>MHLAddMatch(wrd)
 endfunction
 
-function! <SID>MHLStrcmp(str1, str2)
-	let lst1 = str2list(a:str1, 1)
-	let lst2 = str2list(a:str2, 1)
-	let len1 = len(a:str1)
-	let len2 = len(a:str2)
-	if len1 > len2
-		return 1
-	elseif len1 < len2
-		return -1
-	endif
-	let idx = 0
-	while idx < len1
-		let diff = char2nr(lst1[idx]) - char2nr(lst2[idx])
-		if diff
-			return diff
+function! <SID>MHLIsStrSame(str1, str2)
+	if g:mhlIgnoreCase == 0
+		if a:str1 ==# a:str2
+			return 1
+		else
+			return 0
 		endif
-		let idx = idx + 1
-	endwhile
-	return 0
+	else
+		if a:str1 ==? a:str2
+			return 1
+		else
+			return 0
+		endif
+	endif
 endfunction
 
 function! <SID>MHLClearAllMatch()
-	let keys = keys(g:mhlBusyIdDict)
+	let keys = keys(s:mhlBusyIdDict)
 	for key in keys
 		call <SID>MHLClearMatch(key)
 	endfor
 endfunction
 
 function! <SID>MHLClearMatch(id)
-	if has_key(g:mhlBusyIdDict, a:id)
+	if has_key(s:mhlBusyIdDict, a:id)
 		let nr = winnr()
 		exe 'windo call <SID>MHLResetHL(' . a:id . ')'
 		exe nr . 'wincmd w'
-		call remove(g:mhlBusyIdDict, a:id)
-		let idx = index(g:mhlIdHistQueue, str2nr(a:id))
-		call remove(g:mhlIdHistQueue, idx)
+		call remove(s:mhlBusyIdDict, a:id)
+		let idx = index(s:mhlIdHistQueue, str2nr(a:id))
+		call remove(s:mhlIdHistQueue, idx)
 	endif
 endfunction
 
@@ -146,49 +146,49 @@ function! <SID>MHLAddMatch(wrd)
 	let id = <SID>MHLPickMatchId()
 	call <SID>MHLClearMatch(id)
 	let nr = winnr()
-	exe 'windo call matchadd("MatchColor' . id . '", "' . a:wrd . '", ' . g:mhlMatchPriority . ', ' . id . ')'
+	exe 'windo call matchadd("MatchColor' . id . '", "' . a:wrd . '", ' . s:mhlMatchPriority . ', ' . id . ')'
 	exe nr . 'wincmd w'
-	let g:mhlBusyIdDict[id] = a:wrd
-	call add(g:mhlIdHistQueue, id)
+	let s:mhlBusyIdDict[id] = a:wrd
+	call add(s:mhlIdHistQueue, id)
 endfunction
 
 function! <SID>MHLPickMatchId()
 	let maxId = <SID>MHLGetMaxMatchId()
-	let id = g:mhlReserveId + 1
+	let id = s:mhlReserveId + 1
 	while id <= maxId
-		if has_key(g:mhlBusyIdDict, id)
+		if has_key(s:mhlBusyIdDict, id)
 			let id = id + 1
 		else
 			return id
 		endif
 	endwhile
 	if id > maxId
-		if len(g:mhlIdHistQueue) > 0
-			let id = g:mhlIdHistQueue[0]
+		if len(s:mhlIdHistQueue) > 0
+			let id = s:mhlIdHistQueue[0]
 		else
-			let id = g:mhlReserveId + 1
+			let id = s:mhlReserveId + 1
 		endif
 	endif
 	return id
 endfunction
 
 function! <SID>MHLGetMaxMatchId()
-	let id = g:mhlReserveId
+	let id = s:mhlReserveId
 	while hlexists('MatchColor' . (id + 1))
 		let id = id + 1
 	endwhile
-	if id > g:mhlMaxId
-		let id = g:mhlMaxId
+	if id > s:mhlMaxId
+		let id = s:mhlMaxId
 	endif
 	return id
 endfunction
 
 function! <SID>MHLApplyMatch()
-	let keys = keys(g:mhlBusyIdDict)
+	let keys = keys(s:mhlBusyIdDict)
 	for key in keys
 		let nr = winnr()
 		exe 'windo call <SID>MHLResetHL(' . key . ')'
-		exe 'windo call matchadd("MatchColor' . key . '", "' . g:mhlBusyIdDict[key] . '", ' . g:mhlMatchPriority . ', ' . key . ')'
+		exe 'windo call matchadd("MatchColor' . key . '", "' . s:mhlBusyIdDict[key] . '", ' . s:mhlMatchPriority . ', ' . key . ')'
 		exe nr . 'wincmd w'
 	endfor
 endfunction
