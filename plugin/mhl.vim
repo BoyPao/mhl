@@ -46,11 +46,11 @@
 "     Otherwise, match will ignore case. The default value is 0.
 
 if !exists(':MhlTriggerMatch')
-	command! -nargs=? MhlTriggerMatch call <SID>MHLTriggerMatch(<q-args>)
+	command! -nargs=? MhlTriggerMatch call s:MHLTriggerMatch(<q-args>)
 endif
 
 if !exists(':MhlClearAllMatch')
-	command! MhlClearAllMatch call <SID>MHLClearAllMatch()
+	command! MhlClearAllMatch call s:MHLClearAllMatch()
 endif
 
 if !exists('g:mhlIgnoreCase')
@@ -85,22 +85,22 @@ let s:mhlPatternSymbolDict = {
 			\ 'strE' : '\ze'
 			\ }
 
-autocmd WinNew /* call <SID>MHLApplyMatch()
+autocmd WinNew /* call s:MHLApplyMatch()
 
-function! <SID>MHLTriggerMatch(str)
+function! s:MHLTriggerMatch(str)
 	let type = a:str != '' ? 'str' : 'wrd'
 	let tar = type == 'str' ? a:str : expand('<cword>')
 	let keys = keys(s:mhlBusyIdDict)
 	for key in keys
-		if <SID>MHLIsStrSame(tar, s:mhlBusyIdDict[key])
-			call <SID>MHLClearMatch(key)
+		if s:MHLIsStrSame(tar, s:mhlBusyIdDict[key])
+			call s:MHLClearMatch(key)
 			return
 		endif
 	endfor
-	call <SID>MHLAddMatch(tar, type)
+	call s:MHLAddMatch(tar, type)
 endfunction
 
-function! <SID>MHLIsStrSame(str1, str2)
+function! s:MHLIsStrSame(str1, str2)
 	if g:mhlIgnoreCase == 0
 		return a:str1 ==# a:str2 ? 1 : 0
 	else
@@ -108,17 +108,17 @@ function! <SID>MHLIsStrSame(str1, str2)
 	endif
 endfunction
 
-function! <SID>MHLClearAllMatch()
+function! s:MHLClearAllMatch()
 	let keys = keys(s:mhlBusyIdDict)
 	for key in keys
-		call <SID>MHLClearMatch(key)
+		call s:MHLClearMatch(key)
 	endfor
 endfunction
 
-function! <SID>MHLClearMatch(id)
+function! s:MHLClearMatch(id)
 	if has_key(s:mhlBusyIdDict, a:id)
 		let nr = winnr()
-		exe 'windo call <SID>MHLResetHL(' . a:id . ')'
+		exe 'windo call s:MHLResetHL(' . a:id . ')'
 		exe nr . 'wincmd w'
 		call remove(s:mhlBusyIdDict, a:id)
 		let idx = index(s:mhlIdHistQueue, str2nr(a:id))
@@ -126,7 +126,7 @@ function! <SID>MHLClearMatch(id)
 	endif
 endfunction
 
-function! <SID>MHLResetHL(id)
+function! s:MHLResetHL(id)
 	let matches = getmatches()
 	for item in matches
 		let keys = keys(item)
@@ -142,10 +142,10 @@ function! <SID>MHLResetHL(id)
 	endfor
 endfunction
 
-function! <SID>MHLAddMatch(str, type)
-	let id = <SID>MHLPickMatchId()
-	call <SID>MHLClearMatch(id)
-	let pat = <SID>MHLGeneratePattern(a:str, a:type)
+function! s:MHLAddMatch(str, type)
+	let id = s:MHLPickMatchId()
+	call s:MHLClearMatch(id)
+	let pat = s:MHLGeneratePattern(a:str, a:type)
 	let nr = winnr()
 	exe 'windo call matchadd("MatchColor' . id . '", "' . pat . '", ' . s:mhlMatchPriority . ', ' . id . ')'
 	exe nr . 'wincmd w'
@@ -153,7 +153,7 @@ function! <SID>MHLAddMatch(str, type)
 	call add(s:mhlIdHistQueue, id)
 endfunction
 
-function! <SID>MHLGeneratePattern(str, type)
+function! s:MHLGeneratePattern(str, type)
 	let pat = ''
 	if a:type != 'wrd' && a:type != 'str'
 		return pat
@@ -165,8 +165,8 @@ function! <SID>MHLGeneratePattern(str, type)
 	return pat
 endfunction
 
-function! <SID>MHLPickMatchId()
-	let maxId = <SID>MHLGetMaxMatchId()
+function! s:MHLPickMatchId()
+	let maxId = s:MHLGetMaxMatchId()
 	let id = s:mhlReserveId + 1
 	while id <= maxId
 		if has_key(s:mhlBusyIdDict, id)
@@ -185,7 +185,7 @@ function! <SID>MHLPickMatchId()
 	return id
 endfunction
 
-function! <SID>MHLGetMaxMatchId()
+function! s:MHLGetMaxMatchId()
 	let id = s:mhlReserveId
 	while hlexists('MatchColor' . (id + 1))
 		let id = id + 1
@@ -196,11 +196,11 @@ function! <SID>MHLGetMaxMatchId()
 	return id
 endfunction
 
-function! <SID>MHLApplyMatch()
+function! s:MHLApplyMatch()
 	let keys = keys(s:mhlBusyIdDict)
 	for key in keys
 		let nr = winnr()
-		exe 'windo call <SID>MHLResetHL(' . key . ')'
+		exe 'windo call s:MHLResetHL(' . key . ')'
 		exe 'windo call matchadd("MatchColor' . key . '", "' . s:mhlBusyIdDict[key] . '", ' . s:mhlMatchPriority . ', ' . key . ')'
 		exe nr . 'wincmd w'
 	endfor
