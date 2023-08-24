@@ -46,7 +46,7 @@
 "     Otherwise, match will ignore case. The default value is 0.
 
 if !exists(':MhlTriggerMatch')
-	command! MhlTriggerMatch call <SID>MHLTriggerMatch()
+	command! -nargs=? MhlTriggerMatch call <SID>MHLTriggerMatch(<q-args>)
 endif
 
 if !exists(':MhlClearAllMatch')
@@ -75,36 +75,36 @@ let s:mhlReserveId = 3
 let s:mhlMaxId = 10
 
 let s:mhlBusyIdDict = {}
+
 let s:mhlIdHistQueue = []
+
+let s:mhlPatternSymbolDict = {
+			\ 'wrdS' : '\<',
+			\ 'wrdE' : '\>',
+			\ 'strS' : '\zs',
+			\ 'strE' : '\ze'
+			\ }
 
 autocmd WinNew /* call <SID>MHLApplyMatch()
 
-function! <SID>MHLTriggerMatch()
-	let wrd = expand('<cword>')
-	let wrd = escape('\<' . wrd. '\>', '\')
+function! <SID>MHLTriggerMatch(str)
+	let type = a:str != '' ? 'str' : 'wrd'
+	let tar = type == 'str' ? a:str : expand('<cword>')
 	let keys = keys(s:mhlBusyIdDict)
 	for key in keys
-		if <SID>MHLIsStrSame(wrd, s:mhlBusyIdDict[key])
+		if <SID>MHLIsStrSame(tar, s:mhlBusyIdDict[key])
 			call <SID>MHLClearMatch(key)
 			return
 		endif
 	endfor
-	call <SID>MHLAddMatch(wrd)
+	call <SID>MHLAddMatch(tar, type)
 endfunction
 
 function! <SID>MHLIsStrSame(str1, str2)
 	if g:mhlIgnoreCase == 0
-		if a:str1 ==# a:str2
-			return 1
-		else
-			return 0
-		endif
+		return a:str1 ==# a:str2 ? 1 : 0
 	else
-		if a:str1 ==? a:str2
-			return 1
-		else
-			return 0
-		endif
+		return a:str1 ==? a:str2 ? 1 : 0
 	endif
 endfunction
 
@@ -142,14 +142,27 @@ function! <SID>MHLResetHL(id)
 	endfor
 endfunction
 
-function! <SID>MHLAddMatch(wrd)
+function! <SID>MHLAddMatch(str, type)
 	let id = <SID>MHLPickMatchId()
 	call <SID>MHLClearMatch(id)
+	let pat = <SID>MHLGeneratePattern(a:str, a:type)
 	let nr = winnr()
-	exe 'windo call matchadd("MatchColor' . id . '", "' . a:wrd . '", ' . s:mhlMatchPriority . ', ' . id . ')'
+	exe 'windo call matchadd("MatchColor' . id . '", "' . pat . '", ' . s:mhlMatchPriority . ', ' . id . ')'
 	exe nr . 'wincmd w'
-	let s:mhlBusyIdDict[id] = a:wrd
+	let s:mhlBusyIdDict[id] = a:str
 	call add(s:mhlIdHistQueue, id)
+endfunction
+
+function! <SID>MHLGeneratePattern(str, type)
+	let pat = ''
+	if a:type != 'wrd' && a:type != 'str'
+		return pat
+	endif
+	let csymbol = g:mhlIgnoreCase ? '\c' : ''
+	let ssymbol = csymbol . s:mhlPatternSymbolDict[a:type . 'S']
+	let esymbol = s:mhlPatternSymbolDict[a:type . 'E']
+	let pat = escape(ssymbol . a:str. esymbol, '\')
+	return pat
 endfunction
 
 function! <SID>MHLPickMatchId()
