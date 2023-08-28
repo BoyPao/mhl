@@ -85,7 +85,9 @@ let s:mhlPatternSymbolDict = {
 			\ 'strE' : '\ze'
 			\ }
 
-autocmd WinNew /* call s:MHLApplyMatch()
+if version > 800
+	autocmd WinNew /* call s:MHLApplyMatch()
+endif
 
 function! s:MHLTriggerMatch(str)
 	let type = a:str != '' ? 'str' : 'wrd'
