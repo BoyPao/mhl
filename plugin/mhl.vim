@@ -85,7 +85,7 @@ let s:mhlPatternSymbolDict = {
 			\ 'strE' : '\ze'
 			\ }
 
-if version > 800
+if version >= 800
 	autocmd WinNew /* call s:MHLApplyMatch()
 endif
 
